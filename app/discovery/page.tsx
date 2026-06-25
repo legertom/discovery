@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, Suspense, useMemo, useState } from "react";
+import { Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
@@ -243,12 +243,34 @@ function DiscoveryInner() {
       <Card>
         <CardHeader
           title="Discovery Step Log"
-          subtitle="Detailed current-state steps. Many rows per opportunity — filter above to focus."
+          subtitle={
+            oppFilter
+              ? "Detailed current-state steps for the selected workflow."
+              : "Each workflow's step-by-step walkthrough. Pick one to view its steps."
+          }
         />
         {visibleSteps.length === 0 ? (
           <p className="px-5 py-8 text-center text-xs text-slate-400">
-            No steps logged{oppFilter ? " for this opportunity" : ""}.
+            No steps logged{oppFilter ? " for this opportunity" : " yet"}.
           </p>
+        ) : !oppFilter ? (
+          // Index: the workflows that have a step log — click one to view its steps.
+          <div className="divide-y divide-slate-100">
+            {groupedSteps.map((g) => (
+              <button
+                key={g.oppId}
+                onClick={() => setOppFilter(g.oppId)}
+                className="flex w-full items-center justify-between gap-3 px-5 py-3 text-left hover:bg-slate-50"
+              >
+                <span className="text-sm font-medium text-slate-800">
+                  {oppLabel(g.oppId)}
+                </span>
+                <span className="shrink-0 text-xs font-medium text-navy">
+                  {g.rows.length} step{g.rows.length === 1 ? "" : "s"} · View steps →
+                </span>
+              </button>
+            ))}
+          </div>
         ) : (
           <div className="overflow-x-auto scroll-thin">
             <table className="w-full text-sm">
@@ -266,59 +288,40 @@ function DiscoveryInner() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {groupedSteps.map((g) => (
-                  <Fragment key={g.oppId}>
-                    {!oppFilter && (
-                      <tr className="bg-slate-50">
-                        <td colSpan={9} className="px-3 py-2">
-                          <Link
-                            href={`/opportunities/${g.oppId}`}
-                            className="text-xs font-semibold text-slate-700 hover:text-navy"
-                          >
-                            {oppLabel(g.oppId)}
-                          </Link>
-                          <span className="ml-2 text-xs font-normal text-slate-400">
-                            {g.rows.length} step{g.rows.length === 1 ? "" : "s"}
-                          </span>
-                        </td>
-                      </tr>
-                    )}
-                    {g.rows.map((s) => (
-                      <tr key={s.id} className="align-top hover:bg-slate-50">
-                        <td className="px-3 py-2 tabular-nums text-slate-400">{s.stepNumber}</td>
-                        <td className="px-3 py-2 text-slate-800">{s.stepDescription}</td>
-                        <td className="px-3 py-2 text-slate-600">{s.toolSystem}</td>
-                        <td className="px-3 py-2 text-slate-600">{s.manualAction}</td>
-                        <td className="px-3 py-2 text-slate-600">{s.painObserved}</td>
-                        <td className="px-3 py-2">
-                          <Tag v={s.humanJudgment} />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Tag v={s.couldBeAutomated} />
-                        </td>
-                        <td className="px-3 py-2">
-                          <Tag v={s.couldBeAiAssisted} />
-                        </td>
-                        <td className="whitespace-nowrap px-3 py-2 text-right">
-                          <button
-                            onClick={() => setStepModal({ mode: "edit", data: s })}
-                            className="mr-3 text-xs font-medium text-slate-500 hover:text-navy"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete step ${s.stepNumber}? This cannot be undone.`))
-                                removeStep(s.id);
-                            }}
-                            className="text-xs text-slate-400 hover:text-red-600"
-                          >
-                            Delete
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </Fragment>
+                {visibleSteps.map((s) => (
+                  <tr key={s.id} className="align-top hover:bg-slate-50">
+                    <td className="px-3 py-2 tabular-nums text-slate-400">{s.stepNumber}</td>
+                    <td className="px-3 py-2 text-slate-800">{s.stepDescription}</td>
+                    <td className="px-3 py-2 text-slate-600">{s.toolSystem}</td>
+                    <td className="px-3 py-2 text-slate-600">{s.manualAction}</td>
+                    <td className="px-3 py-2 text-slate-600">{s.painObserved}</td>
+                    <td className="px-3 py-2">
+                      <Tag v={s.humanJudgment} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Tag v={s.couldBeAutomated} />
+                    </td>
+                    <td className="px-3 py-2">
+                      <Tag v={s.couldBeAiAssisted} />
+                    </td>
+                    <td className="whitespace-nowrap px-3 py-2 text-right">
+                      <button
+                        onClick={() => setStepModal({ mode: "edit", data: s })}
+                        className="mr-3 text-xs font-medium text-slate-500 hover:text-navy"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete step ${s.stepNumber}? This cannot be undone.`))
+                            removeStep(s.id);
+                        }}
+                        className="text-xs text-slate-400 hover:text-red-600"
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
                 ))}
               </tbody>
             </table>
