@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import { Info } from "lucide-react";
 import {
   useState,
   useEffect,
@@ -87,22 +88,68 @@ export function Button({
 export function Field({
   label,
   hint,
+  info,
   children,
   className,
 }: {
   label: string;
   hint?: string;
+  info?: string;
   children: ReactNode;
   className?: string;
 }) {
   return (
     <label className={cn("block", className)}>
-      <span className="mb-1 block text-xs font-medium text-slate-600">
+      <span className="mb-1 flex items-center gap-1 text-xs font-medium text-slate-600">
         {label}
+        {info && (
+          <Tooltip label={info}>
+            <Info className="h-3.5 w-3.5 cursor-help text-slate-400 hover:text-slate-600" />
+          </Tooltip>
+        )}
       </span>
       {children}
       {hint && <span className="mt-1 block text-[11px] text-slate-400">{hint}</span>}
     </label>
+  );
+}
+
+// 1-5 slider for subjective ratings, with end labels.
+export function RatingSlider({
+  value,
+  onValueChange,
+  lowLabel,
+  highLabel,
+}: {
+  value: number;
+  onValueChange: (n: number) => void;
+  lowLabel?: string;
+  highLabel?: string;
+}) {
+  const v = value || 3;
+  return (
+    <div>
+      <div className="flex items-center gap-3">
+        <input
+          type="range"
+          min={1}
+          max={5}
+          step={1}
+          value={v}
+          onChange={(e) => onValueChange(Number(e.target.value))}
+          className="h-2 flex-1 cursor-pointer accent-navy-600"
+        />
+        <span className="w-6 text-center text-sm font-semibold tabular-nums text-navy">
+          {v}
+        </span>
+      </div>
+      {(lowLabel || highLabel) && (
+        <div className="mt-1 flex justify-between text-[10px] text-slate-400">
+          <span>1 · {lowLabel}</span>
+          <span>5 · {highLabel}</span>
+        </div>
+      )}
+    </div>
   );
 }
 

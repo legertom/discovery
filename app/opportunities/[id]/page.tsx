@@ -15,6 +15,7 @@ import {
   Textarea,
   Field,
   Pill,
+  Tooltip,
   EmptyState,
 } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
@@ -26,7 +27,7 @@ import {
   RISK_LEVELS,
 } from "@/lib/lists";
 import { fmtDate, fmtHours } from "@/lib/utils";
-import { ArrowLeft, Trash2 } from "lucide-react";
+import { ArrowLeft, Trash2, Info } from "lucide-react";
 
 function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -189,7 +190,16 @@ export default function OpportunityDetailPage() {
         {/* Right: scoring + triage */}
         <div className="space-y-5">
           <Card>
-            <CardHeader title="Priority" />
+            <CardHeader
+              title={
+                <span className="inline-flex items-center gap-1">
+                  Priority
+                  <Tooltip label="A directional, formula-derived score to help you sort and triage. It is a starting point, not a verdict — apply judgment.">
+                    <Info className="h-3.5 w-3.5 cursor-help text-slate-400" />
+                  </Tooltip>
+                </span>
+              }
+            />
             <div className="px-5 py-4">
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold tabular-nums text-slate-900">
@@ -206,19 +216,65 @@ export default function OpportunityDetailPage() {
               </div>
               <div className="mt-4 grid grid-cols-2 gap-2 text-center text-xs">
                 {[
-                  { l: "Impact", v: score.impactScore },
-                  { l: "Frequency", v: score.frequencyScore },
-                  { l: "Friction", v: score.frictionScore },
-                  { l: "Risk penalty", v: score.riskPenalty },
+                  { l: "Impact", v: score.impactScore, tip: "Average of business criticality and urgency, plus a bonus for hours/month spent. Higher = bigger payoff if improved." },
+                  { l: "Frequency", v: score.frequencyScore, tip: "How often the workflow runs — daily scores higher than monthly. Frequent friction compounds over time." },
+                  { l: "Friction", v: score.frictionScore, tip: "Average of pain rating and error-proneness. Higher = more painful and mistake-prone." },
+                  { l: "Risk penalty", v: score.riskPenalty, tip: "Added for high risk level and sensitive data, then subtracted from the score. High risk means review before solutioning — not necessarily 'no'." },
                 ].map((m) => (
-                  <div key={m.l} className="rounded-lg border border-slate-200 py-2">
-                    <div className="text-base font-semibold tabular-nums text-slate-800">
-                      {m.v}
+                  <Tooltip key={m.l} label={m.tip} className="w-full">
+                    <div className="w-full rounded-lg border border-slate-200 py-2">
+                      <div className="text-base font-semibold tabular-nums text-slate-800">
+                        {m.v}
+                      </div>
+                      <div className="text-slate-500">{m.l}</div>
                     </div>
-                    <div className="text-slate-500">{m.l}</div>
-                  </div>
+                  </Tooltip>
                 ))}
               </div>
+
+              <details className="mt-4 rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-600">
+                <summary className="cursor-pointer font-medium text-slate-700">
+                  How is this calculated?
+                </summary>
+                <div className="mt-2 space-y-2 leading-relaxed">
+                  <p>
+                    The priority score is a weighted, directional signal — sort by it,
+                    then apply judgment.
+                  </p>
+                  <p className="rounded bg-slate-50 p-2 font-mono text-[11px]">
+                    Priority = Impact×2 + Frequency + Friction×2 + Feasibility − Risk
+                    penalty×2
+                  </p>
+                  <ul className="list-disc space-y-1 pl-4">
+                    <li>
+                      <strong>Impact</strong> — avg of criticality &amp; urgency, plus a
+                      bonus for time spent.
+                    </li>
+                    <li><strong>Frequency</strong> — how often it runs.</li>
+                    <li><strong>Friction</strong> — avg of pain &amp; error-proneness.</li>
+                    <li>
+                      <strong>Feasibility</strong> — Easy +2, Medium +1, Hard −1 (set it in
+                      the Triage panel).
+                    </li>
+                    <li>
+                      <strong>Risk penalty</strong> — from risk level + sensitive data;
+                      pushes risky items toward review.
+                    </li>
+                  </ul>
+                  <p>
+                    The <strong>category</strong> comes from the score combined with
+                    feasibility and risk (e.g. high score + Easy = Quick Win; high risk =
+                    Needs Review).
+                  </p>
+                  <p>
+                    The weights live in{" "}
+                    <Link href="/settings" className="text-navy-600 underline">
+                      Lists &amp; Settings
+                    </Link>
+                    .
+                  </p>
+                </div>
+              </details>
             </div>
           </Card>
 

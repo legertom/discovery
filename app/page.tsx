@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { computeScore } from "@/lib/scoring";
 import { Card, CardHeader, Button } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
+import { IntakeActions } from "@/components/IntakeActions";
 import { PriorityBadge } from "@/components/badges";
 import { fmtHours } from "@/lib/utils";
 import {
@@ -167,11 +168,7 @@ export default function DashboardPage() {
       <PageHeader
         title="Dashboard"
         description="Portfolio view of the workflow friction pipeline. For details on any opportunity, open its brief from Triage & Scoring."
-        action={
-          <Link href="/intake/new">
-            <Button>New Intake</Button>
-          </Link>
-        }
+        action={<IntakeActions />}
       />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">

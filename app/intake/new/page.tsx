@@ -10,6 +10,7 @@ import {
   Button,
   Input,
   NumberInput,
+  RatingSlider,
   Textarea,
   Select,
   Field,
@@ -41,32 +42,6 @@ function Section({
     </Card>
   );
 }
-
-const Rating = ({
-  value,
-  onChange,
-}: {
-  value: number;
-  onChange: (n: number) => void;
-}) => (
-  <div className="flex gap-1.5">
-    {[1, 2, 3, 4, 5].map((n) => (
-      <button
-        key={n}
-        type="button"
-        onClick={() => onChange(n)}
-        className={cn(
-          "h-9 w-9 rounded-lg border text-sm font-medium transition-colors",
-          value === n
-            ? "border-navy bg-navy text-white"
-            : "border-slate-300 bg-white text-slate-600 hover:border-navy-600"
-        )}
-      >
-        {n}
-      </button>
-    ))}
-  </div>
-);
 
 export default function NewIntakePage() {
   const router = useRouter();
@@ -264,23 +239,49 @@ export default function NewIntakePage() {
               })}
             </div>
           </Field>
-          <Field label="Pain rating (1–5)">
-            <Rating value={o.painRating} onChange={(n) => set("painRating", n)} />
+          <Field
+            label="Pain rating"
+            info="How painful is this workflow today? 1 = minor annoyance, 5 = severe, constant pain."
+          >
+            <RatingSlider
+              value={o.painRating}
+              onValueChange={(n) => set("painRating", n)}
+              lowLabel="minor"
+              highLabel="severe"
+            />
           </Field>
-          <Field label="Business criticality (1–5)">
-            <Rating
+          <Field
+            label="Business criticality"
+            info="How critical is this to the business? 1 = nice-to-have, 5 = mission-critical."
+          >
+            <RatingSlider
               value={o.businessCriticality}
-              onChange={(n) => set("businessCriticality", n)}
+              onValueChange={(n) => set("businessCriticality", n)}
+              lowLabel="nice-to-have"
+              highLabel="mission-critical"
             />
           </Field>
-          <Field label="Error-proneness (1–5)">
-            <Rating
+          <Field
+            label="Error-proneness"
+            info="How error-prone is it? 1 = rarely any errors, 5 = frequent, costly errors."
+          >
+            <RatingSlider
               value={o.errorProneness}
-              onChange={(n) => set("errorProneness", n)}
+              onValueChange={(n) => set("errorProneness", n)}
+              lowLabel="rare errors"
+              highLabel="frequent errors"
             />
           </Field>
-          <Field label="Urgency (1–5)">
-            <Rating value={o.urgency} onChange={(n) => set("urgency", n)} />
+          <Field
+            label="Urgency"
+            info="How urgent is it to improve? 1 = no rush, 5 = needs fixing now."
+          >
+            <RatingSlider
+              value={o.urgency}
+              onValueChange={(n) => set("urgency", n)}
+              lowLabel="no rush"
+              highLabel="urgent"
+            />
           </Field>
           <Field label="Internal people affected">
             <NumberInput

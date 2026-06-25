@@ -10,6 +10,7 @@ import {
   Button,
   Input,
   NumberInput,
+  RatingSlider,
   Textarea,
   Select,
   Field,
@@ -214,10 +215,20 @@ export default function ImportPage() {
                 <div className="mb-1"><ConfidenceChip level={conf("systemsInvolved")} /></div>
                 <Input title={evid("systemsInvolved")} value={draft.systemsInvolved} onChange={(e) => set("systemsInvolved", e.target.value)} />
               </Field>
-              {(["painRating", "businessCriticality", "errorProneness", "urgency"] as const).map((k) => (
-                <Field key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()) + " (1-5)"}>
+              {([
+                { k: "painRating", label: "Pain rating", info: "How painful is this workflow today? 1 = minor annoyance, 5 = severe, constant pain.", low: "minor", high: "severe" },
+                { k: "businessCriticality", label: "Business criticality", info: "How critical to the business? 1 = nice-to-have, 5 = mission-critical.", low: "nice-to-have", high: "mission-critical" },
+                { k: "errorProneness", label: "Error-proneness", info: "How error-prone is it? 1 = rarely any errors, 5 = frequent, costly errors.", low: "rare errors", high: "frequent errors" },
+                { k: "urgency", label: "Urgency", info: "How urgent to improve? 1 = no rush, 5 = needs fixing now.", low: "no rush", high: "urgent" },
+              ] as const).map(({ k, label, info, low, high }) => (
+                <Field key={k} label={label} info={info}>
                   <div className="mb-1"><ConfidenceChip level={conf(k)} /></div>
-                  <NumberInput min={1} max={5} value={draft[k] as number} onValueChange={(n) => set(k, n as Opportunity[typeof k])} />
+                  <RatingSlider
+                    value={draft[k] as number}
+                    onValueChange={(n) => set(k, n as Opportunity[typeof k])}
+                    lowLabel={low}
+                    highLabel={high}
+                  />
                 </Field>
               ))}
               <Field label="Sensitive data?">

@@ -4,8 +4,9 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { computeScore } from "@/lib/scoring";
-import { Card, Button, Input, Select, EmptyState } from "@/components/ui";
+import { Card, Input, Select, EmptyState } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
+import { IntakeActions } from "@/components/IntakeActions";
 import { PriorityBadge, RiskBadge, StatusBadge, ScoreBadge } from "@/components/badges";
 import { PRIORITY_CATEGORIES } from "@/lib/lists";
 import { fmtHours } from "@/lib/utils";
@@ -44,11 +45,7 @@ export default function OpportunitiesPage() {
       <PageHeader
         title="Triage & Scoring"
         description="Formula-derived impact, friction, risk, and priority. Set Status, Solution Type, Feasibility, and Risk on each opportunity's brief."
-        action={
-          <Link href="/intake/new">
-            <Button>New Intake</Button>
-          </Link>
-        }
+        action={<IntakeActions />}
       />
 
       <div className="mb-4 flex flex-wrap items-center gap-3">

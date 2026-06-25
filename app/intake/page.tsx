@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { computeScore } from "@/lib/scoring";
-import { Card, Button, Input, EmptyState, Tooltip } from "@/components/ui";
+import { Card, Button, Input, EmptyState } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
+import { IntakeActions } from "@/components/IntakeActions";
 import { StatusBadge } from "@/components/badges";
 import { fmtDate } from "@/lib/utils";
-import { Sparkles } from "lucide-react";
 
 export default function IntakePage() {
   const { opportunities, loaded } = useStore();
@@ -36,20 +36,7 @@ export default function IntakePage() {
       <PageHeader
         title="Intake"
         description="Raw workflow friction submissions. The source of truth for what the submitter knows."
-        action={
-          <div className="flex gap-2">
-            <Tooltip label="Paste a Granola summary or transcript from an intake interview. AI drafts a new intake from your notes — you review and edit before saving.">
-              <Link href="/intake/import">
-                <Button variant="secondary">
-                  <Sparkles className="h-4 w-4" /> New intake from interview notes
-                </Button>
-              </Link>
-            </Tooltip>
-            <Link href="/intake/new">
-              <Button>New Intake</Button>
-            </Link>
-          </div>
-        }
+        action={<IntakeActions />}
       />
 
       <div className="mb-4 max-w-sm">
