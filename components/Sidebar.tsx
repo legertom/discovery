@@ -9,11 +9,13 @@ import {
   Target,
   Search,
   Settings,
+  Compass,
   Sparkles,
 } from "lucide-react";
 
 const nav = [
   { href: "/", label: "Dashboard", icon: LayoutDashboard, exact: true },
+  { href: "/guide", label: "How it works", icon: Compass },
   { href: "/intake", label: "Intake", icon: Inbox },
   { href: "/opportunities", label: "Triage & Scoring", icon: Target },
   { href: "/discovery", label: "Discovery", icon: Search },
@@ -25,12 +27,14 @@ export function Sidebar() {
   return (
     <aside className="fixed inset-y-0 left-0 z-20 flex w-60 flex-col border-r border-slate-200 bg-white">
       <div className="flex items-center gap-2.5 px-5 py-5">
-        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-navy text-white">
+        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-clever-blue text-white">
           <Sparkles className="h-5 w-5" />
         </div>
         <div className="leading-tight">
-          <div className="text-sm font-semibold text-slate-800">AI Enablement</div>
-          <div className="text-[11px] text-slate-500">Intake & Triage</div>
+          <div className="font-serif text-sm font-bold text-clever-navy">
+            AI Enablement
+          </div>
+          <div className="text-[11px] text-slate-500">Workflow Discovery</div>
         </div>
       </div>
 

@@ -1,7 +1,22 @@
 import type { Metadata } from "next";
+import { Inter, Merriweather } from "next/font/google";
 import "./globals.css";
 import { StoreProvider } from "@/lib/store";
 import { Sidebar } from "@/components/Sidebar";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+// Clever headlines are always Merriweather.
+const merriweather = Merriweather({
+  subsets: ["latin"],
+  weight: ["400", "700", "900"],
+  variable: "--font-serif",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "AI Enablement — Intake & Triage",
@@ -15,7 +30,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={`${inter.variable} ${merriweather.variable}`}>
       <body className="font-sans">
         <StoreProvider>
           <Sidebar />
