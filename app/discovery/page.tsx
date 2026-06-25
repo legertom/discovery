@@ -14,12 +14,14 @@ import {
   Select,
   Field,
   Modal,
-  EmptyState,
   Pill,
 } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
 import { SESSION_TYPES, SOLUTION_TYPES, JUDGMENT_OPTS, AUTO_OPTS } from "@/lib/lists";
 import { fmtDate } from "@/lib/utils";
+
+type SessionModal = { mode: "create" | "edit"; data: DiscoverySession } | null;
+type StepModal = { mode: "create" | "edit"; data: DiscoveryStep } | null;
 
 function DiscoveryInner() {
   const params = useSearchParams();
@@ -29,8 +31,10 @@ function DiscoveryInner() {
     sessions,
     steps,
     addSession,
-    addStep,
+    updateSession,
     removeSession,
+    addStep,
+    updateStep,
     removeStep,
     newSessionId,
     newStepId,
@@ -38,14 +42,62 @@ function DiscoveryInner() {
   } = useStore();
 
   const [oppFilter, setOppFilter] = useState(oppFromUrl);
-  const [sessionOpen, setSessionOpen] = useState(false);
-  const [stepOpen, setStepOpen] = useState(false);
+  const [sessionModal, setSessionModal] = useState<SessionModal>(null);
+  const [stepModal, setStepModal] = useState<StepModal>(null);
 
   const oppIds = useMemo(() => opportunities.map((o) => o.id), [opportunities]);
   const oppLabel = (id: string) => {
     const o = opportunities.find((x) => x.id === id);
     return o ? `${o.id} — ${o.workflowName}` : id;
   };
+  const ownerFor = (id: string) =>
+    opportunities.find((o) => o.id === id)?.workflowOwner || "";
+  const nextStepNumber = (oppId: string) =>
+    steps.filter((x) => x.opportunityId === oppId).length + 1;
+
+  function blankSession(): DiscoverySession {
+    const opp = oppFilter || oppIds[0] || "";
+    return {
+      id: newSessionId(),
+      opportunityId: opp,
+      sessionDate: new Date().toISOString().slice(0, 10),
+      facilitator: "",
+      workflowOwnerSme: ownerFor(opp),
+      sessionType: "Live Workflow Walkthrough",
+      sessionGoal: "",
+      summaryLearned: "",
+      keyPainPoints: "",
+      risksGuardrails: "",
+      dependencies: "",
+      likelySolutionDirection: "",
+      recommendedNextStep: "",
+      ownerOfNextStep: "",
+      nextReviewDate: "",
+      notes: "",
+    };
+  }
+  function blankStep(): DiscoveryStep {
+    const opp = oppFilter || oppIds[0] || "";
+    return {
+      id: newStepId(),
+      opportunityId: opp,
+      sessionId: "",
+      stepNumber: nextStepNumber(opp),
+      stepDescription: "",
+      toolSystem: "",
+      input: "",
+      output: "",
+      manualAction: "",
+      timeSpent: "",
+      painObserved: "",
+      errorRiskPoint: "",
+      humanJudgment: "Unknown",
+      couldBeAutomated: "Unknown",
+      couldBeAiAssisted: "Unknown",
+      dependency: "",
+      notes: "",
+    };
+  }
 
   const visibleSessions = sessions.filter(
     (s) => !oppFilter || s.opportunityId === oppFilter
@@ -67,10 +119,17 @@ function DiscoveryInner() {
         description="Log discovery conversations (summaries) and detailed step-by-step workflow walkthroughs."
         action={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={() => setStepOpen(true)} disabled={!oppIds.length}>
+            <Button
+              variant="secondary"
+              onClick={() => setStepModal({ mode: "create", data: blankStep() })}
+              disabled={!oppIds.length}
+            >
               Add Step
             </Button>
-            <Button onClick={() => setSessionOpen(true)} disabled={!oppIds.length}>
+            <Button
+              onClick={() => setSessionModal({ mode: "create", data: blankSession() })}
+              disabled={!oppIds.length}
+            >
               Log Session
             </Button>
           </div>
@@ -121,7 +180,16 @@ function DiscoveryInner() {
                   <div className="flex items-center gap-3">
                     <span className="text-xs text-slate-400">{fmtDate(s.sessionDate)}</span>
                     <button
-                      onClick={() => removeSession(s.id)}
+                      onClick={() => setSessionModal({ mode: "edit", data: s })}
+                      className="text-xs font-medium text-slate-500 hover:text-navy"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (confirm(`Delete ${s.id}? This cannot be undone.`))
+                          removeSession(s.id);
+                      }}
                       className="text-xs text-slate-400 hover:text-red-600"
                     >
                       Delete
@@ -174,7 +242,7 @@ function DiscoveryInner() {
                   <th className="px-3 py-2">Judgment</th>
                   <th className="px-3 py-2">Automate</th>
                   <th className="px-3 py-2">AI?</th>
-                  <th className="px-3 py-2"></th>
+                  <th className="px-3 py-2 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -199,12 +267,21 @@ function DiscoveryInner() {
                     <td className="px-3 py-2">
                       <Tag v={s.couldBeAiAssisted} />
                     </td>
-                    <td className="px-3 py-2">
+                    <td className="whitespace-nowrap px-3 py-2 text-right">
                       <button
-                        onClick={() => removeStep(s.id)}
+                        onClick={() => setStepModal({ mode: "edit", data: s })}
+                        className="mr-3 text-xs font-medium text-slate-500 hover:text-navy"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm(`Delete step ${s.stepNumber}? This cannot be undone.`))
+                            removeStep(s.id);
+                        }}
                         className="text-xs text-slate-400 hover:text-red-600"
                       >
-                        ✕
+                        Delete
                       </button>
                     </td>
                   </tr>
@@ -215,37 +292,35 @@ function DiscoveryInner() {
         )}
       </Card>
 
-      {sessionOpen && (
+      {sessionModal && (
         <SessionForm
+          initial={sessionModal.data}
+          isEdit={sessionModal.mode === "edit"}
           oppIds={oppIds}
           oppLabel={oppLabel}
-          defaultOpp={oppFilter}
-          onClose={() => setSessionOpen(false)}
+          ownerFor={ownerFor}
+          onClose={() => setSessionModal(null)}
           onSave={(s) => {
-            addSession(s);
-            setSessionOpen(false);
+            if (sessionModal.mode === "edit") updateSession(s.id, s);
+            else addSession(s);
+            setSessionModal(null);
           }}
-          newId={newSessionId()}
-          ownerFor={(id) =>
-            opportunities.find((o) => o.id === id)?.workflowOwner || ""
-          }
         />
       )}
-      {stepOpen && (
+      {stepModal && (
         <StepForm
+          initial={stepModal.data}
+          isEdit={stepModal.mode === "edit"}
           oppIds={oppIds}
           oppLabel={oppLabel}
-          defaultOpp={oppFilter}
           sessions={sessions}
-          onClose={() => setStepOpen(false)}
+          nextStepNumber={nextStepNumber}
+          onClose={() => setStepModal(null)}
           onSave={(s) => {
-            addStep(s);
-            setStepOpen(false);
+            if (stepModal.mode === "edit") updateStep(s.id, s);
+            else addStep(s);
+            setStepModal(null);
           }}
-          newId={newStepId()}
-          nextStepNumber={(oppId) =>
-            steps.filter((x) => x.opportunityId === oppId).length + 1
-          }
         />
       )}
     </>
@@ -273,40 +348,23 @@ function Tag({ v }: { v: string }) {
 }
 
 function SessionForm({
+  initial,
+  isEdit,
   oppIds,
   oppLabel,
-  defaultOpp,
+  ownerFor,
   onClose,
   onSave,
-  newId,
-  ownerFor,
 }: {
+  initial: DiscoverySession;
+  isEdit: boolean;
   oppIds: string[];
   oppLabel: (id: string) => string;
-  defaultOpp: string;
+  ownerFor: (id: string) => string;
   onClose: () => void;
   onSave: (s: DiscoverySession) => void;
-  newId: string;
-  ownerFor: (id: string) => string;
 }) {
-  const [s, setS] = useState<DiscoverySession>({
-    id: newId,
-    opportunityId: defaultOpp || oppIds[0] || "",
-    sessionDate: new Date().toISOString().slice(0, 10),
-    facilitator: "",
-    workflowOwnerSme: ownerFor(defaultOpp || oppIds[0] || ""),
-    sessionType: "Live Workflow Walkthrough",
-    sessionGoal: "",
-    summaryLearned: "",
-    keyPainPoints: "",
-    risksGuardrails: "",
-    dependencies: "",
-    likelySolutionDirection: "",
-    recommendedNextStep: "",
-    ownerOfNextStep: "",
-    nextReviewDate: "",
-    notes: "",
-  });
+  const [s, setS] = useState<DiscoverySession>(initial);
   const set = <K extends keyof DiscoverySession>(k: K, v: DiscoverySession[K]) =>
     setS((p) => ({ ...p, [k]: v }));
 
@@ -314,14 +372,14 @@ function SessionForm({
     <Modal
       open
       onClose={onClose}
-      title={`Log Discovery Session — ${s.id}`}
+      title={`${isEdit ? "Edit" : "Log"} Discovery Session — ${s.id}`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={() => onSave(s)} disabled={!s.opportunityId}>
-            Save Session
+            {isEdit ? "Save changes" : "Save Session"}
           </Button>
         </>
       }
@@ -335,7 +393,7 @@ function SessionForm({
             onChange={(e) => {
               const id = oppIds.find((x) => oppLabel(x) === e.target.value) || "";
               set("opportunityId", id);
-              set("workflowOwnerSme", ownerFor(id));
+              if (!isEdit) set("workflowOwnerSme", ownerFor(id));
             }}
           />
         </Field>
@@ -393,50 +451,41 @@ function SessionForm({
         <Field label="Owner of next step">
           <Input value={s.ownerOfNextStep} onChange={(e) => set("ownerOfNextStep", e.target.value)} />
         </Field>
+        <Field label="Next review date">
+          <Input
+            type="date"
+            value={s.nextReviewDate}
+            onChange={(e) => set("nextReviewDate", e.target.value)}
+          />
+        </Field>
+        <Field label="Notes" className="sm:col-span-2">
+          <Textarea value={s.notes} onChange={(e) => set("notes", e.target.value)} />
+        </Field>
       </div>
     </Modal>
   );
 }
 
 function StepForm({
+  initial,
+  isEdit,
   oppIds,
   oppLabel,
-  defaultOpp,
   sessions,
+  nextStepNumber,
   onClose,
   onSave,
-  newId,
-  nextStepNumber,
 }: {
+  initial: DiscoveryStep;
+  isEdit: boolean;
   oppIds: string[];
   oppLabel: (id: string) => string;
-  defaultOpp: string;
   sessions: DiscoverySession[];
+  nextStepNumber: (oppId: string) => number;
   onClose: () => void;
   onSave: (s: DiscoveryStep) => void;
-  newId: string;
-  nextStepNumber: (oppId: string) => number;
 }) {
-  const firstOpp = defaultOpp || oppIds[0] || "";
-  const [s, setS] = useState<DiscoveryStep>({
-    id: newId,
-    opportunityId: firstOpp,
-    sessionId: "",
-    stepNumber: nextStepNumber(firstOpp),
-    stepDescription: "",
-    toolSystem: "",
-    input: "",
-    output: "",
-    manualAction: "",
-    timeSpent: "",
-    painObserved: "",
-    errorRiskPoint: "",
-    humanJudgment: "Unknown",
-    couldBeAutomated: "Unknown",
-    couldBeAiAssisted: "Unknown",
-    dependency: "",
-    notes: "",
-  });
+  const [s, setS] = useState<DiscoveryStep>(initial);
   const set = <K extends keyof DiscoveryStep>(k: K, v: DiscoveryStep[K]) =>
     setS((p) => ({ ...p, [k]: v }));
 
@@ -448,14 +497,14 @@ function StepForm({
     <Modal
       open
       onClose={onClose}
-      title={`Add Workflow Step — ${s.id}`}
+      title={`${isEdit ? "Edit" : "Add"} Workflow Step — ${s.id}`}
       footer={
         <>
           <Button variant="secondary" onClick={onClose}>
             Cancel
           </Button>
           <Button onClick={() => onSave(s)} disabled={!s.opportunityId || !s.stepDescription}>
-            Save Step
+            {isEdit ? "Save changes" : "Save Step"}
           </Button>
         </>
       }
@@ -469,7 +518,7 @@ function StepForm({
             onChange={(e) => {
               const id = oppIds.find((x) => oppLabel(x) === e.target.value) || "";
               set("opportunityId", id);
-              set("stepNumber", nextStepNumber(id));
+              if (!isEdit) set("stepNumber", nextStepNumber(id));
             }}
           />
         </Field>
@@ -544,6 +593,9 @@ function StepForm({
         </Field>
         <Field label="Dependency / access needed">
           <Input value={s.dependency} onChange={(e) => set("dependency", e.target.value)} />
+        </Field>
+        <Field label="Notes" className="sm:col-span-2">
+          <Textarea value={s.notes} onChange={(e) => set("notes", e.target.value)} />
         </Field>
       </div>
     </Modal>
