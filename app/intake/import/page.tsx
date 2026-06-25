@@ -9,6 +9,7 @@ import {
   CardHeader,
   Button,
   Input,
+  NumberInput,
   Textarea,
   Select,
   Field,
@@ -203,11 +204,11 @@ export default function ImportPage() {
               </Field>
               <Field label="Minutes per run">
                 <div className="mb-1"><ConfidenceChip level={conf("minutesPerRun")} /></div>
-                <Input type="number" value={draft.minutesPerRun} onChange={(e) => set("minutesPerRun", Number(e.target.value))} />
+                <NumberInput min={0} value={draft.minutesPerRun} onValueChange={(n) => set("minutesPerRun", n)} />
               </Field>
               <Field label="People doing this work">
                 <div className="mb-1"><ConfidenceChip level={conf("peopleDoingWork")} /></div>
-                <Input type="number" value={draft.peopleDoingWork} onChange={(e) => set("peopleDoingWork", Number(e.target.value))} />
+                <NumberInput min={0} value={draft.peopleDoingWork} onValueChange={(n) => set("peopleDoingWork", n)} />
               </Field>
               <Field label="Systems / tools involved">
                 <div className="mb-1"><ConfidenceChip level={conf("systemsInvolved")} /></div>
@@ -216,7 +217,7 @@ export default function ImportPage() {
               {(["painRating", "businessCriticality", "errorProneness", "urgency"] as const).map((k) => (
                 <Field key={k} label={k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase()) + " (1-5)"}>
                   <div className="mb-1"><ConfidenceChip level={conf(k)} /></div>
-                  <Input type="number" min={1} max={5} value={draft[k] as number} onChange={(e) => set(k, Number(e.target.value) as Opportunity[typeof k])} />
+                  <NumberInput min={1} max={5} value={draft[k] as number} onValueChange={(n) => set(k, n as Opportunity[typeof k])} />
                 </Field>
               ))}
               <Field label="Sensitive data?">

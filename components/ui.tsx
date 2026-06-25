@@ -2,6 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import {
+  useState,
+  useEffect,
   type ReactNode,
   type InputHTMLAttributes,
   type TextareaHTMLAttributes,
@@ -109,6 +111,40 @@ const inputCls =
 
 export function Input(props: InputHTMLAttributes<HTMLInputElement>) {
   return <input {...props} className={cn(inputCls, props.className)} />;
+}
+
+// Number input that tracks the typed text rather than forcing a numeric value
+// into the box — avoids the leading-zero bug (e.g. "0" + "120" => "0120").
+export function NumberInput({
+  value,
+  onValueChange,
+  className,
+  ...rest
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "type"> & {
+  value: number;
+  onValueChange: (n: number) => void;
+}) {
+  const [text, setText] = useState(value ? String(value) : "");
+  // Re-sync when the value changes from outside (e.g. AI extraction fills it).
+  useEffect(() => {
+    const parsed = text === "" ? 0 : Number(text);
+    if (parsed !== value) setText(value ? String(value) : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value]);
+  return (
+    <input
+      type="number"
+      inputMode="numeric"
+      value={text}
+      onChange={(e) => {
+        const v = e.target.value;
+        setText(v);
+        onValueChange(v === "" ? 0 : Number(v));
+      }}
+      className={cn(inputCls, className)}
+      {...rest}
+    />
+  );
 }
 
 export function Textarea(props: TextareaHTMLAttributes<HTMLTextAreaElement>) {

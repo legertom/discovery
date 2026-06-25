@@ -9,6 +9,7 @@ import {
   CardHeader,
   Button,
   Input,
+  NumberInput,
   Textarea,
   Select,
   Field,
@@ -205,19 +206,17 @@ export default function NewIntakePage() {
             />
           </Field>
           <Field label="Minutes per run" hint="Active minutes each time it runs.">
-            <Input
-              type="number"
+            <NumberInput
               min={0}
               value={o.minutesPerRun}
-              onChange={(e) => set("minutesPerRun", Number(e.target.value))}
+              onValueChange={(n) => set("minutesPerRun", n)}
             />
           </Field>
           <Field label="People doing this work">
-            <Input
-              type="number"
+            <NumberInput
               min={1}
               value={o.peopleDoingWork}
-              onChange={(e) => set("peopleDoingWork", Number(e.target.value))}
+              onValueChange={(n) => set("peopleDoingWork", n)}
             />
           </Field>
           <Field label="Outputs / items per cycle">
@@ -234,11 +233,10 @@ export default function NewIntakePage() {
             />
           </Field>
           <Field label="Number of systems">
-            <Input
-              type="number"
+            <NumberInput
               min={0}
               value={o.numberOfSystems}
-              onChange={(e) => set("numberOfSystems", Number(e.target.value))}
+              onValueChange={(n) => set("numberOfSystems", n)}
             />
           </Field>
         </Section>
@@ -285,11 +283,10 @@ export default function NewIntakePage() {
             <Rating value={o.urgency} onChange={(n) => set("urgency", n)} />
           </Field>
           <Field label="Internal people affected">
-            <Input
-              type="number"
+            <NumberInput
               min={0}
               value={o.peopleAffected}
-              onChange={(e) => set("peopleAffected", Number(e.target.value))}
+              onValueChange={(n) => set("peopleAffected", n)}
             />
           </Field>
           <Field label="Customers / districts / students affected">
