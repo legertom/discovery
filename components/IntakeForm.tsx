@@ -299,14 +299,20 @@ export function IntakeForm({
               highLabel="urgent"
             />
           </Field>
-          <Field label="Internal people affected">
+          <Field
+            label="Internal people affected"
+            info="A number — how many people inside the company are touched by this workflow (those who run it, wait on it, or rely on its output). Used in scoring."
+          >
             <NumberInput
               min={0}
               value={o.peopleAffected}
               onValueChange={(n) => set("peopleAffected", n)}
             />
           </Field>
-          <Field label="Customers / districts / students affected">
+          <Field
+            label="Customers / districts / students affected"
+            info="Free text — who outside the company is affected and roughly how many (e.g. '~40 districts', 'all enterprise customers'). Leave blank if none."
+          >
             <Input
               value={o.customersAffected}
               onChange={(e) => set("customersAffected", e.target.value)}
