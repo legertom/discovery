@@ -105,8 +105,8 @@ export default function ImportPage() {
           </button>
         </div>
         <PageHeader
-          title="Import from Interview"
-          description="Paste a Granola summary or transcript from an intake interview. AI will draft the intake form and flag what wasn't covered — you review and edit before saving."
+          title="New Intake from Interview Notes"
+          description="Paste a Granola summary or transcript from an intake interview. AI will draft a new intake and flag what wasn't covered — you review and edit before saving."
         />
         <Card>
           <CardHeader

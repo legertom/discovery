@@ -93,6 +93,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             steps: json.steps ?? [],
           });
           setMode("db");
+          // Clear any stale localStorage from the pre-DB era so old seed
+          // data can never resurface in DB mode.
+          try {
+            localStorage.removeItem(KEY);
+          } catch {
+            /* ignore */
+          }
           return;
         }
       } catch {

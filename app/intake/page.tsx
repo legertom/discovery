@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { computeScore } from "@/lib/scoring";
-import { Card, Button, Input, EmptyState } from "@/components/ui";
+import { Card, Button, Input, EmptyState, Tooltip } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
 import { StatusBadge } from "@/components/badges";
 import { fmtDate } from "@/lib/utils";
@@ -38,11 +38,13 @@ export default function IntakePage() {
         description="Raw workflow friction submissions. The source of truth for what the submitter knows."
         action={
           <div className="flex gap-2">
-            <Link href="/intake/import">
-              <Button variant="secondary">
-                <Sparkles className="h-4 w-4" /> Import from interview
-              </Button>
-            </Link>
+            <Tooltip label="Paste a Granola summary or transcript from an intake interview. AI drafts a new intake from your notes — you review and edit before saving.">
+              <Link href="/intake/import">
+                <Button variant="secondary">
+                  <Sparkles className="h-4 w-4" /> New intake from interview notes
+                </Button>
+              </Link>
+            </Tooltip>
             <Link href="/intake/new">
               <Button>New Intake</Button>
             </Link>

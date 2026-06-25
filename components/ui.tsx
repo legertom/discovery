@@ -160,6 +160,28 @@ export function Pill({
   );
 }
 
+export function Tooltip({
+  label,
+  children,
+  className,
+}: {
+  label: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <span className={cn("group relative inline-flex", className)}>
+      {children}
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute right-0 top-full z-30 mt-2 w-64 rounded-lg bg-slate-900 px-3 py-2 text-xs leading-relaxed text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100"
+      >
+        {label}
+      </span>
+    </span>
+  );
+}
+
 export function Modal({
   open,
   onClose,
