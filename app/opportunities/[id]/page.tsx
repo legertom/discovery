@@ -27,7 +27,7 @@ import {
   RISK_LEVELS,
 } from "@/lib/lists";
 import { fmtDate, fmtHours } from "@/lib/utils";
-import { ArrowLeft, Trash2, Info } from "lucide-react";
+import { ArrowLeft, Trash2, Info, Pencil } from "lucide-react";
 
 function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -99,9 +99,16 @@ export default function OpportunityDetailPage() {
         title={o.workflowName || "(untitled workflow)"}
         description={`${o.id} · ${o.team || "—"} · Owner: ${o.workflowOwner || "—"} · Submitted ${fmtDate(o.submittedDate)}`}
         action={
-          <Button variant="secondary" size="sm" onClick={del}>
-            <Trash2 className="h-4 w-4" /> Delete
-          </Button>
+          <div className="flex gap-2">
+            <Link href={`/opportunities/${o.id}/edit`}>
+              <Button variant="secondary" size="sm">
+                <Pencil className="h-4 w-4" /> Edit intake
+              </Button>
+            </Link>
+            <Button variant="secondary" size="sm" onClick={del}>
+              <Trash2 className="h-4 w-4" /> Delete
+            </Button>
+          </div>
         }
       />
 
