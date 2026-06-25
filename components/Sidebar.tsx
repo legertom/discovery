@@ -58,12 +58,6 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="border-t border-slate-100 px-5 py-4">
-        <p className="text-[11px] leading-relaxed text-slate-400">
-          Front-end prototype. Data is stored locally in your browser until the
-          database is connected.
-        </p>
-      </div>
     </aside>
   );
 }
