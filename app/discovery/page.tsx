@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useMemo, useState } from "react";
+import { Fragment, Suspense, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
@@ -110,6 +110,17 @@ function DiscoveryInner() {
         ? a.stepNumber - b.stepNumber
         : a.opportunityId.localeCompare(b.opportunityId)
     );
+
+  // Group steps by opportunity so the unfiltered log reads per-workflow.
+  const groupedSteps: { oppId: string; rows: DiscoveryStep[] }[] = [];
+  for (const s of visibleSteps) {
+    let g = groupedSteps.find((x) => x.oppId === s.opportunityId);
+    if (!g) {
+      g = { oppId: s.opportunityId, rows: [] };
+      groupedSteps.push(g);
+    }
+    g.rows.push(s);
+  }
 
   if (!loaded) return <div className="text-sm text-slate-400">Loading…</div>;
 
@@ -255,45 +266,59 @@ function DiscoveryInner() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {visibleSteps.map((s) => (
-                  <tr key={s.id} className="align-top hover:bg-slate-50">
-                    <td className="px-3 py-2 tabular-nums text-slate-400">{s.stepNumber}</td>
-                    <td className="px-3 py-2 text-slate-800">
-                      {s.stepDescription}
-                      {!oppFilter && (
-                        <div className="text-[11px] text-slate-400">{s.opportunityId}</div>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-slate-600">{s.toolSystem}</td>
-                    <td className="px-3 py-2 text-slate-600">{s.manualAction}</td>
-                    <td className="px-3 py-2 text-slate-600">{s.painObserved}</td>
-                    <td className="px-3 py-2">
-                      <Tag v={s.humanJudgment} />
-                    </td>
-                    <td className="px-3 py-2">
-                      <Tag v={s.couldBeAutomated} />
-                    </td>
-                    <td className="px-3 py-2">
-                      <Tag v={s.couldBeAiAssisted} />
-                    </td>
-                    <td className="whitespace-nowrap px-3 py-2 text-right">
-                      <button
-                        onClick={() => setStepModal({ mode: "edit", data: s })}
-                        className="mr-3 text-xs font-medium text-slate-500 hover:text-navy"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm(`Delete step ${s.stepNumber}? This cannot be undone.`))
-                            removeStep(s.id);
-                        }}
-                        className="text-xs text-slate-400 hover:text-red-600"
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
+                {groupedSteps.map((g) => (
+                  <Fragment key={g.oppId}>
+                    {!oppFilter && (
+                      <tr className="bg-slate-50">
+                        <td colSpan={9} className="px-3 py-2">
+                          <Link
+                            href={`/opportunities/${g.oppId}`}
+                            className="text-xs font-semibold text-slate-700 hover:text-navy"
+                          >
+                            {oppLabel(g.oppId)}
+                          </Link>
+                          <span className="ml-2 text-xs font-normal text-slate-400">
+                            {g.rows.length} step{g.rows.length === 1 ? "" : "s"}
+                          </span>
+                        </td>
+                      </tr>
+                    )}
+                    {g.rows.map((s) => (
+                      <tr key={s.id} className="align-top hover:bg-slate-50">
+                        <td className="px-3 py-2 tabular-nums text-slate-400">{s.stepNumber}</td>
+                        <td className="px-3 py-2 text-slate-800">{s.stepDescription}</td>
+                        <td className="px-3 py-2 text-slate-600">{s.toolSystem}</td>
+                        <td className="px-3 py-2 text-slate-600">{s.manualAction}</td>
+                        <td className="px-3 py-2 text-slate-600">{s.painObserved}</td>
+                        <td className="px-3 py-2">
+                          <Tag v={s.humanJudgment} />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Tag v={s.couldBeAutomated} />
+                        </td>
+                        <td className="px-3 py-2">
+                          <Tag v={s.couldBeAiAssisted} />
+                        </td>
+                        <td className="whitespace-nowrap px-3 py-2 text-right">
+                          <button
+                            onClick={() => setStepModal({ mode: "edit", data: s })}
+                            className="mr-3 text-xs font-medium text-slate-500 hover:text-navy"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (confirm(`Delete step ${s.stepNumber}? This cannot be undone.`))
+                                removeStep(s.id);
+                            }}
+                            className="text-xs text-slate-400 hover:text-red-600"
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
