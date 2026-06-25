@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { computeScore } from "@/lib/scoring";
-import type { Opportunity } from "@/lib/types";
+import type { Opportunity, DiscoveryStep } from "@/lib/types";
 import {
   Card,
   CardHeader,
@@ -36,6 +36,52 @@ function Row({ label, value }: { label: string; value?: React.ReactNode }) {
       <dd className="col-span-2 whitespace-pre-wrap text-sm text-slate-700">
         {value || <span className="text-slate-300">—</span>}
       </dd>
+    </div>
+  );
+}
+
+function DTag({ v }: { v: string }) {
+  const map: Record<string, string> = {
+    Yes: "bg-green-100 text-green-700",
+    No: "bg-slate-100 text-slate-500",
+    Partially: "bg-amber-100 text-amber-700",
+    Sometimes: "bg-amber-100 text-amber-700",
+    Unknown: "bg-slate-100 text-slate-400",
+  };
+  return <Pill className={map[v] || "bg-slate-100 text-slate-500"}>{v}</Pill>;
+}
+
+function StepsTable({ steps }: { steps: DiscoveryStep[] }) {
+  return (
+    <div className="overflow-x-auto scroll-thin">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 bg-slate-50 text-left text-xs font-semibold text-slate-500">
+            <th className="px-3 py-2">#</th>
+            <th className="px-3 py-2">Step</th>
+            <th className="px-3 py-2">Tool</th>
+            <th className="px-3 py-2">Manual action</th>
+            <th className="px-3 py-2">Pain</th>
+            <th className="px-3 py-2">Judgment</th>
+            <th className="px-3 py-2">Automate</th>
+            <th className="px-3 py-2">AI?</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-100">
+          {steps.map((s) => (
+            <tr key={s.id} className="align-top">
+              <td className="px-3 py-2 tabular-nums text-slate-400">{s.stepNumber}</td>
+              <td className="px-3 py-2 text-slate-800">{s.stepDescription}</td>
+              <td className="px-3 py-2 text-slate-600">{s.toolSystem}</td>
+              <td className="px-3 py-2 text-slate-600">{s.manualAction}</td>
+              <td className="px-3 py-2 text-slate-600">{s.painObserved}</td>
+              <td className="px-3 py-2"><DTag v={s.humanJudgment} /></td>
+              <td className="px-3 py-2"><DTag v={s.couldBeAutomated} /></td>
+              <td className="px-3 py-2"><DTag v={s.couldBeAiAssisted} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }
@@ -347,47 +393,89 @@ export default function OpportunityDetailPage() {
               </div>
             </div>
           </Card>
-
-          <Card>
-            <CardHeader
-              title="Discovery"
-              subtitle={`${relatedSessions.length} session(s), ${relatedSteps.length} step(s)`}
-              action={
-                <Link href={`/discovery?opp=${o.id}`}>
-                  <Button variant="secondary" size="sm">
-                    Open
-                  </Button>
-                </Link>
-              }
-            />
-            <div className="divide-y divide-slate-100">
-              {relatedSessions.length === 0 ? (
-                <p className="px-5 py-6 text-center text-xs text-slate-400">
-                  No discovery sessions logged yet.
-                </p>
-              ) : (
-                relatedSessions.map((s) => (
-                  <div key={s.id} className="px-5 py-3">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-medium text-slate-700">
-                        {s.sessionType}
-                      </span>
-                      <span className="text-xs text-slate-400">
-                        {fmtDate(s.sessionDate)}
-                      </span>
-                    </div>
-                    {s.summaryLearned && (
-                      <p className="mt-1 line-clamp-3 text-xs text-slate-500">
-                        {s.summaryLearned}
-                      </p>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
-          </Card>
         </div>
       </div>
+
+      {/* Discovery — full width: sessions + the step log you can click into */}
+      <Card className="mt-5">
+        <CardHeader
+          title="Discovery"
+          subtitle={`${relatedSessions.length} session(s) · ${relatedSteps.length} step(s) logged`}
+          action={
+            <Link href={`/discovery?opp=${o.id}`}>
+              <Button variant="secondary" size="sm">
+                Open in Discovery
+              </Button>
+            </Link>
+          }
+        />
+        <div className="space-y-3 p-5">
+          {relatedSessions.length === 0 && relatedSteps.length === 0 ? (
+            <p className="py-4 text-center text-xs text-slate-400">
+              No discovery logged yet.{" "}
+              <Link href={`/discovery?opp=${o.id}`} className="text-navy-600 underline">
+                Start discovery →
+              </Link>
+            </p>
+          ) : (
+            <>
+              {relatedSessions.map((s) => {
+                const linked = relatedSteps.filter((st) => st.sessionId === s.id);
+                return (
+                  <details key={s.id} className="rounded-lg border border-slate-200" open>
+                    <summary className="flex cursor-pointer flex-wrap items-center justify-between gap-2 px-4 py-3">
+                      <span className="flex flex-wrap items-center gap-2">
+                        <Pill className="bg-purple-100 text-purple-700">{s.sessionType}</Pill>
+                        <span className="font-mono text-xs text-slate-400">{s.id}</span>
+                        {s.sessionGoal && (
+                          <span className="text-xs text-slate-600">{s.sessionGoal}</span>
+                        )}
+                      </span>
+                      <span className="text-xs text-slate-400">{fmtDate(s.sessionDate)}</span>
+                    </summary>
+                    <div className="space-y-3 border-t border-slate-100 px-4 py-3">
+                      {s.summaryLearned && (
+                        <p className="text-sm text-slate-700">{s.summaryLearned}</p>
+                      )}
+                      {s.keyPainPoints && (
+                        <p className="text-xs text-slate-500">
+                          <span className="font-medium text-slate-600">Key pain points: </span>
+                          {s.keyPainPoints}
+                        </p>
+                      )}
+                      {linked.length > 0 && <StepsTable steps={linked} />}
+                    </div>
+                  </details>
+                );
+              })}
+
+              {(() => {
+                const linkedIds = new Set(relatedSessions.map((s) => s.id));
+                const loose = relatedSteps.filter(
+                  (st) => !st.sessionId || !linkedIds.has(st.sessionId)
+                );
+                if (loose.length === 0) return null;
+                return (
+                  <details
+                    className="rounded-lg border border-slate-200"
+                    open={relatedSessions.length === 0}
+                  >
+                    <summary className="cursor-pointer px-4 py-3 text-sm font-semibold text-slate-700">
+                      Step Log — {loose.length} step{loose.length === 1 ? "" : "s"}
+                      <span className="ml-2 text-xs font-normal text-slate-400">
+                        click to view all steps
+                      </span>
+                    </summary>
+                    <div className="border-t border-slate-100">
+                      <StepsTable steps={loose} />
+                    </div>
+                  </details>
+                );
+              })()}
+            </>
+          )}
+        </div>
+      </Card>
     </>
   );
 }
