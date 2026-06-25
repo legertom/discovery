@@ -31,7 +31,7 @@ function ListCard({ title, values }: { title: string; values: readonly string[] 
 }
 
 export default function SettingsPage() {
-  const { opportunities, sessions, steps, resetToSeed, loaded } = useStore();
+  const { opportunities, sessions, steps, resetToSeed, loaded, mode } = useStore();
 
   return (
     <>
@@ -63,34 +63,56 @@ export default function SettingsPage() {
         </Card>
 
         <Card>
-          <CardHeader title="Local Data" subtitle="Prototype storage (browser localStorage)" />
+          <CardHeader
+            title="Data"
+            subtitle={
+              mode === "db"
+                ? "Connected to the database (Neon Postgres)"
+                : mode === "local"
+                ? "Local storage (no database connected)"
+                : "Loading…"
+            }
+          />
           <div className="space-y-4 p-5">
             {loaded && (
-              <div className="grid grid-cols-3 gap-3 text-center">
-                {[
-                  { l: "Opportunities", v: opportunities.length },
-                  { l: "Sessions", v: sessions.length },
-                  { l: "Steps", v: steps.length },
-                ].map((m) => (
-                  <div key={m.l} className="rounded-lg border border-slate-200 py-3">
-                    <div className="text-xl font-semibold text-slate-800">{m.v}</div>
-                    <div className="text-xs text-slate-500">{m.l}</div>
-                  </div>
-                ))}
-              </div>
+              <>
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  {[
+                    { l: "Opportunities", v: opportunities.length },
+                    { l: "Sessions", v: sessions.length },
+                    { l: "Steps", v: steps.length },
+                  ].map((m) => (
+                    <div key={m.l} className="rounded-lg border border-slate-200 py-3">
+                      <div className="text-xl font-semibold text-slate-800">{m.v}</div>
+                      <div className="text-xs text-slate-500">{m.l}</div>
+                    </div>
+                  ))}
+                </div>
+                {mode === "db" ? (
+                  <p className="flex items-center gap-2 text-xs text-slate-500">
+                    <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+                    Records are stored in the database and shared across everyone using
+                    this app.
+                  </p>
+                ) : (
+                  <>
+                    <p className="text-xs text-slate-500">
+                      No database is connected, so data lives only in this browser.
+                      Resetting restores the seeded sample opportunities.
+                    </p>
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        if (confirm("Reset all local data to the seeded samples?"))
+                          resetToSeed();
+                      }}
+                    >
+                      Reset to sample data
+                    </Button>
+                  </>
+                )}
+              </>
             )}
-            <p className="text-xs text-slate-500">
-              Data lives in your browser until the database is connected. Resetting
-              restores the seeded sample opportunities.
-            </p>
-            <Button
-              variant="secondary"
-              onClick={() => {
-                if (confirm("Reset all local data to the seeded samples?")) resetToSeed();
-              }}
-            >
-              Reset to sample data
-            </Button>
           </div>
         </Card>
       </div>
