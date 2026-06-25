@@ -17,7 +17,7 @@ import {
   Pill,
 } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
-import { SESSION_TYPES, SOLUTION_TYPES, JUDGMENT_OPTS, AUTO_OPTS } from "@/lib/lists";
+import { SESSION_TYPES, JUDGMENT_OPTS, AUTO_OPTS } from "@/lib/lists";
 import { fmtDate } from "@/lib/utils";
 import { Sparkles } from "lucide-react";
 
@@ -40,6 +40,7 @@ function DiscoveryInner() {
     newSessionId,
     newStepId,
     loaded,
+    settings,
   } = useStore();
 
   const [oppFilter, setOppFilter] = useState(oppFromUrl);
@@ -336,6 +337,7 @@ function DiscoveryInner() {
           oppIds={oppIds}
           oppLabel={oppLabel}
           ownerFor={ownerFor}
+          solutionTypes={settings.solutionTypes}
           onClose={() => setSessionModal(null)}
           onSave={(s) => {
             if (sessionModal.mode === "edit") updateSession(s.id, s);
@@ -390,6 +392,7 @@ function SessionForm({
   oppIds,
   oppLabel,
   ownerFor,
+  solutionTypes,
   onClose,
   onSave,
 }: {
@@ -398,6 +401,7 @@ function SessionForm({
   oppIds: string[];
   oppLabel: (id: string) => string;
   ownerFor: (id: string) => string;
+  solutionTypes: string[];
   onClose: () => void;
   onSave: (s: DiscoverySession) => void;
 }) {
@@ -471,7 +475,7 @@ function SessionForm({
         </Field>
         <Field label="Likely solution direction">
           <Select
-            options={SOLUTION_TYPES}
+            options={solutionTypes}
             placeholder="Not yet clear"
             value={s.likelySolutionDirection}
             onChange={(e) =>

@@ -18,7 +18,7 @@ import {
   EmptyState,
 } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
-import { TEAMS, FREQUENCIES, YES_NO_UNSURE } from "@/lib/lists";
+import { FREQUENCIES, YES_NO_UNSURE } from "@/lib/lists";
 import { cn } from "@/lib/utils";
 import { Sparkles, ArrowLeft, AlertTriangle } from "lucide-react";
 
@@ -46,7 +46,7 @@ function ConfidenceChip({ level }: { level?: string }) {
 
 export default function ImportPage() {
   const router = useRouter();
-  const { addOpportunity, newOpportunityId } = useStore();
+  const { addOpportunity, newOpportunityId, settings } = useStore();
 
   const [phase, setPhase] = useState<"input" | "review">("input");
   const [transcript, setTranscript] = useState("");
@@ -185,7 +185,7 @@ export default function ImportPage() {
               </Field>
               <Field label="Team / Function">
                 <div className="mb-1"><ConfidenceChip level={conf("team")} /></div>
-                <Select options={TEAMS} placeholder="Select…" value={draft.team} onChange={(e) => set("team", e.target.value)} />
+                <Select options={settings.teams} placeholder="Select…" value={draft.team} onChange={(e) => set("team", e.target.value)} />
               </Field>
               <Field label="Workflow Owner">
                 <div className="mb-1"><ConfidenceChip level={conf("workflowOwner")} /></div>

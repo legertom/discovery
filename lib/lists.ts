@@ -112,3 +112,17 @@ export const SCORING_WEIGHTS = {
   feasibility: 1,
   riskPenalty: 2,
 };
+
+// Default editable settings (label lists + weights). Used as the fallback when
+// the DB has no settings row yet.
+import type { AppSettings } from "./types";
+
+export function defaultSettings(): AppSettings {
+  return {
+    teams: [...TEAMS],
+    frictionTypes: [...FRICTION_TYPES],
+    statuses: [...STATUSES],
+    solutionTypes: [...SOLUTION_TYPES],
+    weights: { ...SCORING_WEIGHTS },
+  };
+}

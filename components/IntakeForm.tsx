@@ -14,10 +14,9 @@ import {
   Field,
 } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
+import { useStore } from "@/lib/store";
 import {
-  TEAMS,
   FREQUENCIES,
-  FRICTION_TYPES,
   YES_NO_UNSURE,
   YES_NO_MAYBE,
   TIMELINES,
@@ -57,7 +56,18 @@ export function IntakeForm({
   onSubmit: (o: Opportunity) => void;
   onCancel: () => void;
 }) {
+  const { settings } = useStore();
   const [o, setO] = useState<Opportunity>(initial);
+
+  // Editable lists from settings, keeping any value already on this record.
+  const teamOptions =
+    o.team && !settings.teams.includes(o.team)
+      ? [o.team, ...settings.teams]
+      : settings.teams;
+  const frictionOptions = [
+    ...settings.frictionTypes,
+    ...o.frictionTypes.filter((f) => !settings.frictionTypes.includes(f)),
+  ];
 
   function set<K extends keyof Opportunity>(key: K, val: Opportunity[K]) {
     setO((prev) => ({ ...prev, [key]: val }));
@@ -101,7 +111,7 @@ export function IntakeForm({
           </Field>
           <Field label="Team / Function">
             <Select
-              options={TEAMS}
+              options={teamOptions}
               placeholder="Select a team…"
               value={o.team}
               onChange={(e) => set("team", e.target.value)}
@@ -225,7 +235,7 @@ export function IntakeForm({
         <Section title="Friction & Pain">
           <Field label="Friction types" hint="Multiple may apply." className="md:col-span-2">
             <div className="flex flex-wrap gap-2">
-              {FRICTION_TYPES.map((f) => {
+              {frictionOptions.map((f) => {
                 const on = o.frictionTypes.includes(f);
                 return (
                   <button

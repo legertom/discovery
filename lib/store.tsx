@@ -9,8 +9,15 @@ import {
   useRef,
   type ReactNode,
 } from "react";
-import type { Opportunity, DiscoverySession, DiscoveryStep } from "./types";
+import type {
+  Opportunity,
+  DiscoverySession,
+  DiscoveryStep,
+  AppSettings,
+} from "./types";
 import { SEED_OPPORTUNITIES, SEED_SESSIONS, SEED_STEPS } from "./seed";
+import { defaultSettings } from "./lists";
+import { setScoringWeights } from "./scoring";
 import { nextId } from "./utils";
 
 const KEY = "ai-enablement-intake-v1";
@@ -26,6 +33,8 @@ interface Data {
 interface Store extends Data {
   loaded: boolean;
   mode: Mode;
+  settings: AppSettings;
+  updateSettings: (patch: Partial<AppSettings>) => void;
   addOpportunity: (o: Opportunity) => void;
   updateOpportunity: (id: string, patch: Partial<Opportunity>) => void;
   removeOpportunity: (id: string) => void;
@@ -75,6 +84,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     steps: [],
   });
   const [mode, setMode] = useState<Mode>("loading");
+  const [settings, setSettings] = useState<AppSettings>(defaultSettings);
   const modeRef = useRef<Mode>("loading");
   modeRef.current = mode;
 
@@ -92,6 +102,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
             sessions: json.sessions ?? [],
             steps: json.steps ?? [],
           });
+          setSettings(json.settings ?? defaultSettings());
           setMode("db");
           // Clear any stale localStorage from the pre-DB era so old seed
           // data can never resurface in DB mode.
@@ -109,9 +120,21 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       // Local fallback (DB not configured yet)
       try {
         const raw = localStorage.getItem(KEY);
-        setData(raw ? JSON.parse(raw) : seedData());
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          setData({
+            opportunities: parsed.opportunities ?? [],
+            sessions: parsed.sessions ?? [],
+            steps: parsed.steps ?? [],
+          });
+          setSettings(parsed.settings ?? defaultSettings());
+        } else {
+          setData(seedData());
+          setSettings(defaultSettings());
+        }
       } catch {
         setData(seedData());
+        setSettings(defaultSettings());
       }
       setMode("local");
     })();
@@ -124,12 +147,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (mode === "local") {
       try {
-        localStorage.setItem(KEY, JSON.stringify(data));
+        localStorage.setItem(KEY, JSON.stringify({ ...data, settings }));
       } catch {
         /* ignore quota errors */
       }
     }
-  }, [data, mode]);
+  }, [data, settings, mode]);
 
   const isDb = () => modeRef.current === "db";
 
@@ -199,6 +222,18 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (modeRef.current === "local") setData(seedData());
   }, []);
 
+  const updateSettings = useCallback((p: Partial<AppSettings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...p };
+      if (modeRef.current === "db") post("/api/settings", next);
+      return next;
+    });
+  }, []);
+
+  // Keep the scoring engine's weights in sync with the editable settings so
+  // computeScore() reflects them everywhere without threading them through.
+  setScoringWeights(settings.weights);
+
   const newOpportunityId = useCallback(
     () => nextId("WF", data.opportunities.map((o) => o.id)),
     [data.opportunities]
@@ -216,6 +251,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     ...data,
     loaded: mode !== "loading",
     mode,
+    settings,
+    updateSettings,
     addOpportunity,
     updateOpportunity,
     removeOpportunity,

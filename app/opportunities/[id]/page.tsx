@@ -20,14 +20,95 @@ import {
 } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
 import { PriorityBadge, RiskBadge, StatusBadge } from "@/components/badges";
-import {
-  STATUSES,
-  SOLUTION_TYPES,
-  FEASIBILITIES,
-  RISK_LEVELS,
-} from "@/lib/lists";
-import { fmtDate, fmtHours } from "@/lib/utils";
-import { ArrowLeft, Trash2, Info, Pencil } from "lucide-react";
+import { FEASIBILITIES, RISK_LEVELS } from "@/lib/lists";
+import { fmtDate, fmtHours, cn } from "@/lib/utils";
+import { ArrowLeft, Trash2, Info, Pencil, Check } from "lucide-react";
+
+// The main delivery path. Off-path statuses (Parked, Not a Fit) are shown as a
+// note rather than a position on the rail.
+const PHASES = [
+  { label: "Intake", statuses: ["New"] },
+  {
+    label: "Discovery",
+    statuses: ["Needs Discovery", "Discovery Scheduled", "Discovery Complete"],
+  },
+  { label: "Prototype", statuses: ["Prototype Candidate", "In Prototype"] },
+  { label: "Live", statuses: ["Implemented"] },
+];
+
+function StatusPipeline({
+  status,
+  nextStep,
+}: {
+  status: string;
+  nextStep: string;
+}) {
+  const offTrack = status === "Parked" || status === "Not a Fit";
+  const current = PHASES.findIndex((p) => p.statuses.includes(status));
+  const progress = current > 0 ? (current / (PHASES.length - 1)) * 75 : 0;
+
+  return (
+    <Card className="mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-5 py-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-slate-800">Status</span>
+          <StatusBadge value={status} />
+        </div>
+        <span className="text-xs text-slate-500">
+          <span className="font-medium text-slate-600">Next: </span>
+          {nextStep}
+        </span>
+      </div>
+      <div className="px-8 py-6">
+        <div className="relative">
+          <div className="absolute left-0 right-0 top-4 h-0.5 bg-slate-200" />
+          {!offTrack && (
+            <div
+              className="absolute top-4 h-0.5 bg-clever-blue"
+              style={{ left: "12.5%", width: `${progress}%` }}
+            />
+          )}
+          <ol className="relative grid grid-cols-4">
+            {PHASES.map((p, i) => {
+              const done = !offTrack && i < current;
+              const active = !offTrack && i === current;
+              const reached = done || active;
+              return (
+                <li key={p.label} className="flex flex-col items-center text-center">
+                  <div
+                    className={cn(
+                      "relative z-10 flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold ring-4 ring-white",
+                      reached
+                        ? "bg-clever-blue text-white"
+                        : "border border-slate-300 bg-white text-slate-400",
+                      active && "ring-clever-sky"
+                    )}
+                  >
+                    {done ? <Check className="h-4 w-4" /> : i + 1}
+                  </div>
+                  <span
+                    className={cn(
+                      "mt-2 text-xs",
+                      reached ? "font-semibold text-clever-navy" : "text-slate-400"
+                    )}
+                  >
+                    {p.label}
+                  </span>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+        {offTrack && (
+          <p className="mt-4 text-center text-xs text-slate-500">
+            This opportunity is <span className="font-medium">{status}</span> — not
+            currently moving through the pipeline.
+          </p>
+        )}
+      </div>
+    </Card>
+  );
+}
 
 function Row({ label, value }: { label: string; value?: React.ReactNode }) {
   return (
@@ -96,6 +177,7 @@ export default function OpportunityDetailPage() {
     updateOpportunity,
     removeOpportunity,
     loaded,
+    settings,
   } = useStore();
 
   const o = opportunities.find((x) => x.id === id);
@@ -118,6 +200,15 @@ export default function OpportunityDetailPage() {
         }
       />
     );
+
+  // Editable lists from settings, keeping any value already on this record.
+  const statusOptions = settings.statuses.includes(o.status)
+    ? settings.statuses
+    : [o.status, ...settings.statuses];
+  const solutionOptions =
+    o.likelySolutionType && !settings.solutionTypes.includes(o.likelySolutionType)
+      ? [o.likelySolutionType, ...settings.solutionTypes]
+      : settings.solutionTypes;
 
   function up<K extends keyof Opportunity>(key: K, val: Opportunity[K]) {
     updateOpportunity(id, { [key]: val } as Partial<Opportunity>);
@@ -157,6 +248,8 @@ export default function OpportunityDetailPage() {
           </div>
         }
       />
+
+      <StatusPipeline status={o.status} nextStep={score.recommendedNextStep} />
 
       <div className="grid gap-5 lg:grid-cols-3">
         {/* Left: brief */}
@@ -339,14 +432,14 @@ export default function OpportunityDetailPage() {
             <div className="space-y-3 px-5 py-4">
               <Field label="Status">
                 <Select
-                  options={STATUSES}
+                  options={statusOptions}
                   value={o.status}
                   onChange={(e) => up("status", e.target.value as Opportunity["status"])}
                 />
               </Field>
               <Field label="Likely solution type">
                 <Select
-                  options={SOLUTION_TYPES}
+                  options={solutionOptions}
                   placeholder="Not yet assessed"
                   value={o.likelySolutionType}
                   onChange={(e) =>

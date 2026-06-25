@@ -1,7 +1,18 @@
 import { eq } from "drizzle-orm";
 import { db } from "./index";
-import { opportunities, discoverySessions, discoverySteps } from "./schema";
-import type { Opportunity, DiscoverySession, DiscoveryStep } from "../types";
+import {
+  opportunities,
+  discoverySessions,
+  discoverySteps,
+  appSettings,
+} from "./schema";
+import type {
+  Opportunity,
+  DiscoverySession,
+  DiscoveryStep,
+  AppSettings,
+} from "../types";
+import { defaultSettings } from "../lists";
 
 // All functions assume db is configured; callers (API routes) check dbConfigured() first.
 function requireDb() {
@@ -81,12 +92,29 @@ export async function deleteStep(id: string): Promise<void> {
   await requireDb().delete(discoverySteps).where(eq(discoverySteps.id, id));
 }
 
+// ---- Settings ----
+export async function getSettings(): Promise<AppSettings> {
+  const rows = await requireDb()
+    .select()
+    .from(appSettings)
+    .where(eq(appSettings.id, "singleton"));
+  return rows[0]?.data ?? defaultSettings();
+}
+
+export async function saveSettings(data: AppSettings): Promise<void> {
+  await requireDb()
+    .insert(appSettings)
+    .values({ id: "singleton", data })
+    .onConflictDoUpdate({ target: appSettings.id, set: { data } });
+}
+
 // Bulk load for the client store.
 export async function loadAll() {
-  const [opps, sessions, steps] = await Promise.all([
+  const [opps, sessions, steps, settings] = await Promise.all([
     listOpportunities(),
     listSessions(),
     listSteps(),
+    getSettings(),
   ]);
-  return { opportunities: opps, sessions, steps };
+  return { opportunities: opps, sessions, steps, settings };
 }

@@ -156,6 +156,23 @@ export interface DiscoveryStep {
   notes: string;
 }
 
+// Editable settings: label lists + scoring weights. Persisted in the DB.
+export interface ScoringWeights {
+  impact: number;
+  frequency: number;
+  pain: number;
+  feasibility: number;
+  riskPenalty: number;
+}
+
+export interface AppSettings {
+  teams: string[];
+  frictionTypes: string[];
+  statuses: string[];
+  solutionTypes: string[];
+  weights: ScoringWeights;
+}
+
 // Derived scoring values, computed from an Opportunity.
 export interface Score {
   estRunsPerMonth: number;

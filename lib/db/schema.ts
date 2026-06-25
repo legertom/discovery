@@ -5,6 +5,14 @@ import {
   jsonb,
   timestamp,
 } from "drizzle-orm/pg-core";
+import type { AppSettings } from "../types";
+
+// Single-row table holding the editable app settings (label lists + weights).
+export const appSettings = pgTable("app_settings", {
+  id: text("id").primaryKey().default("singleton"),
+  data: jsonb("data").$type<AppSettings>().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
 
 // Tables mirror lib/types.ts. IDs are human-readable strings (WF-0001, DS-0001, ST-0001).
 // Dates are stored as ISO date strings (text) to match the app's existing model.

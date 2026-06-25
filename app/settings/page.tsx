@@ -1,24 +1,29 @@
 "use client";
 
+import { useState } from "react";
 import { useStore } from "@/lib/store";
-import { Card, CardHeader, Button, Pill } from "@/components/ui";
+import {
+  Card,
+  CardHeader,
+  Button,
+  Input,
+  NumberInput,
+  Pill,
+} from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
 import {
-  TEAMS,
   FREQUENCIES,
-  FRICTION_TYPES,
-  SOLUTION_TYPES,
-  STATUSES,
   RISK_LEVELS,
   FEASIBILITIES,
   PRIORITY_CATEGORIES,
-  SCORING_WEIGHTS,
 } from "@/lib/lists";
+import type { AppSettings } from "@/lib/types";
 
-function ListCard({ title, values }: { title: string; values: readonly string[] }) {
+// Read-only reference list (values wired into the scoring math — fixed).
+function FixedListCard({ title, values }: { title: string; values: readonly string[] }) {
   return (
     <Card>
-      <CardHeader title={title} subtitle={`${values.length} values`} />
+      <CardHeader title={title} subtitle={`${values.length} values · fixed (tied to scoring)`} />
       <div className="flex flex-wrap gap-2 p-5">
         {values.map((v) => (
           <Pill key={v} className="bg-slate-100 text-slate-600">
@@ -30,36 +35,120 @@ function ListCard({ title, values }: { title: string; values: readonly string[] 
   );
 }
 
+// Editable label list.
+function ListEditor({
+  title,
+  values,
+  onChange,
+}: {
+  title: string;
+  values: string[];
+  onChange: (next: string[]) => void;
+}) {
+  const [draft, setDraft] = useState("");
+  const add = () => {
+    const v = draft.trim();
+    if (v && !values.includes(v)) onChange([...values, v]);
+    setDraft("");
+  };
+  return (
+    <Card>
+      <CardHeader title={title} subtitle={`${values.length} values · editable`} />
+      <div className="space-y-3 p-5">
+        <div className="flex flex-wrap gap-2">
+          {values.map((v) => (
+            <span
+              key={v}
+              className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs text-slate-600"
+            >
+              {v}
+              <button
+                onClick={() => onChange(values.filter((x) => x !== v))}
+                className="text-slate-400 hover:text-red-600"
+                aria-label={`Remove ${v}`}
+              >
+                ✕
+              </button>
+            </span>
+          ))}
+          {values.length === 0 && (
+            <span className="text-xs text-slate-400">No values yet.</span>
+          )}
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                add();
+              }
+            }}
+            placeholder="Add a value…"
+            className="text-sm"
+          />
+          <Button variant="secondary" size="sm" onClick={add} disabled={!draft.trim()}>
+            Add
+          </Button>
+        </div>
+      </div>
+    </Card>
+  );
+}
+
+const WEIGHT_DEFS: { key: keyof AppSettings["weights"]; label: string }[] = [
+  { key: "impact", label: "Impact Weight" },
+  { key: "frequency", label: "Frequency Weight" },
+  { key: "pain", label: "Pain Weight" },
+  { key: "feasibility", label: "Feasibility Weight" },
+  { key: "riskPenalty", label: "Risk Penalty Weight" },
+];
+
 export default function SettingsPage() {
-  const { opportunities, sessions, steps, resetToSeed, loaded, mode } = useStore();
+  const {
+    opportunities,
+    sessions,
+    steps,
+    resetToSeed,
+    loaded,
+    mode,
+    settings,
+    updateSettings,
+  } = useStore();
 
   return (
     <>
       <PageHeader
         title="Lists & Settings"
-        description="Reference values used across the app and the scoring weights that drive prioritization."
+        description="Editable dropdown values and the scoring weights that drive prioritization. Changes save automatically."
       />
 
       <div className="mb-6 grid gap-4 lg:grid-cols-2">
         <Card>
           <CardHeader
             title="Scoring Weights"
-            subtitle="Changing these would change how priority is calculated."
+            subtitle="Multipliers in the priority formula. Changes recompute every score."
           />
           <div className="divide-y divide-slate-100">
-            {Object.entries({
-              "Impact Weight": SCORING_WEIGHTS.impact,
-              "Frequency Weight": SCORING_WEIGHTS.frequency,
-              "Pain Weight": SCORING_WEIGHTS.pain,
-              "Feasibility Weight": SCORING_WEIGHTS.feasibility,
-              "Risk Penalty Weight": SCORING_WEIGHTS.riskPenalty,
-            }).map(([k, v]) => (
-              <div key={k} className="flex items-center justify-between px-5 py-3">
-                <span className="text-sm text-slate-600">{k}</span>
-                <span className="font-mono text-sm font-semibold text-slate-800">{v}</span>
+            {WEIGHT_DEFS.map(({ key, label }) => (
+              <div key={key} className="flex items-center justify-between gap-4 px-5 py-2.5">
+                <span className="text-sm text-slate-600">{label}</span>
+                <div className="w-20">
+                  <NumberInput
+                    value={settings.weights[key]}
+                    onValueChange={(n) =>
+                      updateSettings({ weights: { ...settings.weights, [key]: n } })
+                    }
+                  />
+                </div>
               </div>
             ))}
           </div>
+          <p className="px-5 py-3 text-[11px] text-slate-400">
+            Formula: Impact×Impact + Frequency×Frequency + Friction×Pain +
+            Feasibility×Feasibility − RiskPenalty×Risk Penalty.
+          </p>
         </Card>
 
         <Card>
@@ -91,8 +180,8 @@ export default function SettingsPage() {
                 {mode === "db" ? (
                   <p className="flex items-center gap-2 text-xs text-slate-500">
                     <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-                    Records are stored in the database and shared across everyone using
-                    this app.
+                    Records and settings are stored in the database and shared across
+                    everyone using this app.
                   </p>
                 ) : (
                   <>
@@ -117,15 +206,42 @@ export default function SettingsPage() {
         </Card>
       </div>
 
+      <h2 className="mb-3 text-sm font-semibold text-slate-700">Editable lists</h2>
+      <div className="mb-6 grid gap-4 md:grid-cols-2">
+        <ListEditor
+          title="Team / Function"
+          values={settings.teams}
+          onChange={(teams) => updateSettings({ teams })}
+        />
+        <ListEditor
+          title="Friction Type"
+          values={settings.frictionTypes}
+          onChange={(frictionTypes) => updateSettings({ frictionTypes })}
+        />
+        <ListEditor
+          title="Opportunity Status"
+          values={settings.statuses}
+          onChange={(statuses) => updateSettings({ statuses })}
+        />
+        <ListEditor
+          title="Likely Solution Type"
+          values={settings.solutionTypes}
+          onChange={(solutionTypes) => updateSettings({ solutionTypes })}
+        />
+      </div>
+
+      <h2 className="mb-1 text-sm font-semibold text-slate-700">
+        Fixed lists
+      </h2>
+      <p className="mb-3 text-xs text-slate-500">
+        These values are wired into the scoring formulas, so they can&apos;t be edited
+        here without changing how scores are calculated.
+      </p>
       <div className="grid gap-4 md:grid-cols-2">
-        <ListCard title="Team / Function" values={TEAMS} />
-        <ListCard title="Frequency" values={FREQUENCIES} />
-        <ListCard title="Friction Type" values={FRICTION_TYPES} />
-        <ListCard title="Likely Solution Type" values={SOLUTION_TYPES} />
-        <ListCard title="Opportunity Status" values={STATUSES} />
-        <ListCard title="Priority Category" values={PRIORITY_CATEGORIES} />
-        <ListCard title="Risk Level" values={RISK_LEVELS} />
-        <ListCard title="Feasibility" values={FEASIBILITIES} />
+        <FixedListCard title="Frequency" values={FREQUENCIES} />
+        <FixedListCard title="Priority Category" values={PRIORITY_CATEGORIES} />
+        <FixedListCard title="Risk Level" values={RISK_LEVELS} />
+        <FixedListCard title="Feasibility" values={FEASIBILITIES} />
       </div>
     </>
   );

@@ -4,10 +4,11 @@ import { useMemo } from "react";
 import Link from "next/link";
 import { useStore } from "@/lib/store";
 import { computeScore } from "@/lib/scoring";
-import { Card, CardHeader, Button } from "@/components/ui";
+import { Card, CardHeader, Button, Pill } from "@/components/ui";
 import { PageHeader } from "@/components/PageHeader";
 import { PriorityBadge } from "@/components/badges";
-import { fmtHours } from "@/lib/utils";
+import { fmtHours, fmtDate } from "@/lib/utils";
+import type { Opportunity } from "@/lib/types";
 import {
   Inbox,
   Zap,
@@ -17,7 +18,68 @@ import {
   Clock,
   CalendarClock,
   Gauge,
+  CheckCircle2,
+  ClipboardList,
+  ShieldAlert,
+  ArrowRight,
 } from "lucide-react";
+
+// Rules for the "Needs your attention" queue. One row per opportunity — the
+// single most urgent reason it's waiting on you, in this priority order.
+type AttnKind = "overdue" | "risk" | "triage" | "stalled" | "quickwin";
+
+const ATTN: Record<
+  AttnKind,
+  {
+    label: string;
+    icon: React.ElementType;
+    accent: string;
+    detail: (o: Opportunity) => string;
+    cta: string;
+    href: (o: Opportunity) => string;
+  }
+> = {
+  overdue: {
+    label: "Review overdue",
+    icon: CalendarClock,
+    accent: "bg-red-100 text-red-700",
+    detail: (o) => `Review was due ${fmtDate(o.nextReviewDate)}`,
+    cta: "Open brief",
+    href: (o) => `/opportunities/${o.id}`,
+  },
+  risk: {
+    label: "Awaiting risk review",
+    icon: ShieldAlert,
+    accent: "bg-red-100 text-red-700",
+    detail: () => "Review with Security / Legal / Data owner before solutioning",
+    cta: "Open brief",
+    href: (o) => `/opportunities/${o.id}`,
+  },
+  triage: {
+    label: "Needs triage",
+    icon: ClipboardList,
+    accent: "bg-navy-50 text-navy",
+    detail: () => "New intake — set status, feasibility, and risk",
+    cta: "Triage",
+    href: (o) => `/opportunities/${o.id}`,
+  },
+  stalled: {
+    label: "Discovery not started",
+    icon: Search,
+    accent: "bg-amber-100 text-amber-700",
+    detail: () => "Marked for discovery, but no session logged yet",
+    cta: "Open discovery",
+    href: (o) => `/discovery?opp=${o.id}`,
+  },
+  quickwin: {
+    label: "Quick win ready",
+    icon: Zap,
+    accent: "bg-green-100 text-green-700",
+    detail: () => "High score and easy — schedule prototype scoping",
+    cta: "Open brief",
+    href: (o) => `/opportunities/${o.id}`,
+  },
+};
 
 function Kpi({
   label,
@@ -160,6 +222,37 @@ export default function DashboardPage() {
     [scored]
   );
 
+  const attention = useMemo(() => {
+    const today = new Date().toISOString().slice(0, 10);
+    const discovered = new Set(sessions.map((s) => s.opportunityId));
+    const order: AttnKind[] = ["overdue", "risk", "triage", "stalled", "quickwin"];
+    const items: { o: Opportunity; kind: AttnKind }[] = [];
+    for (const { o, s } of scored) {
+      const terminal =
+        o.status === "Implemented" ||
+        o.status === "Parked" ||
+        o.status === "Not a Fit";
+      let kind: AttnKind | null = null;
+      if (o.nextReviewDate && o.nextReviewDate <= today && !terminal) {
+        kind = "overdue";
+      } else if (s.priorityCategory === "High Risk / Needs Review" && !terminal) {
+        kind = "risk";
+      } else if (o.status === "New") {
+        kind = "triage";
+      } else if (
+        (o.status === "Needs Discovery" || o.status === "Discovery Scheduled") &&
+        !discovered.has(o.id)
+      ) {
+        kind = "stalled";
+      } else if (s.priorityCategory === "Quick Win" && !terminal) {
+        kind = "quickwin";
+      }
+      if (kind) items.push({ o, kind });
+    }
+    items.sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind));
+    return items;
+  }, [scored, sessions]);
+
   if (!loaded) return <div className="text-sm text-slate-400">Loading…</div>;
 
   return (
@@ -179,6 +272,54 @@ export default function DashboardPage() {
         <Kpi label="Est. Annual Hours" value={fmtHours(stats.annual)} icon={CalendarClock} accent="bg-amber-100 text-amber-700" />
         <Kpi label="Avg Priority Score" value={stats.avg || "—"} icon={Gauge} accent="bg-navy-50 text-navy" />
       </div>
+
+      <Card className="mt-6">
+        <CardHeader
+          title="Needs your attention"
+          subtitle="What's waiting on you right now — work these first."
+        />
+        {attention.length === 0 ? (
+          <div className="flex items-center gap-3 px-5 py-8 text-sm text-slate-500">
+            <CheckCircle2 className="h-5 w-5 text-clever-green" />
+            You&rsquo;re all caught up — nothing is waiting on you.
+          </div>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {attention.map(({ o, kind }) => {
+              const meta = ATTN[kind];
+              const Icon = meta.icon;
+              return (
+                <Link
+                  key={`${o.id}-${kind}`}
+                  href={meta.href(o)}
+                  className="group flex items-center gap-4 px-5 py-3 hover:bg-slate-50"
+                >
+                  <div
+                    className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${meta.accent}`}
+                  >
+                    <Icon className="h-4 w-4" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="truncate text-sm font-medium text-slate-800">
+                        {o.workflowName || "(untitled)"}
+                      </span>
+                      <Pill className="bg-slate-100 text-slate-600">{meta.label}</Pill>
+                    </div>
+                    <div className="truncate text-xs text-slate-500">
+                      {o.id} · {meta.detail(o)}
+                    </div>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-clever-blue">
+                    {meta.cta}
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
+      </Card>
 
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         <Card>

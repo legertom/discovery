@@ -1,6 +1,14 @@
 // Scoring engine — direct port of the spreadsheet "Opportunity Scoring" formulas.
 
-import type { Opportunity, Score, PriorityCategory } from "./types";
+import type { Opportunity, Score, PriorityCategory, ScoringWeights } from "./types";
+import { SCORING_WEIGHTS } from "./lists";
+
+// The priority-score weights in effect. The store syncs these from the editable
+// app settings so computeScore() picks them up without threading them everywhere.
+let activeWeights: ScoringWeights = { ...SCORING_WEIGHTS };
+export function setScoringWeights(w: ScoringWeights) {
+  activeWeights = { ...w };
+}
 
 function runsPerMonth(frequency: string): number {
   switch (frequency) {
@@ -82,12 +90,13 @@ export function computeScore(o: Opportunity): Score {
   else if (o.feasibility === "Medium") feasMod = 1;
   else if (o.feasibility === "Hard") feasMod = -1;
 
+  const w = activeWeights;
   const priorityScore = round1(
-    impactScore * 2 +
-      freqScore * 1 +
-      frictionScore * 2 +
-      feasMod -
-      riskPenalty * 2
+    impactScore * w.impact +
+      freqScore * w.frequency +
+      frictionScore * w.pain +
+      feasMod * w.feasibility -
+      riskPenalty * w.riskPenalty
   );
 
   // Priority category
