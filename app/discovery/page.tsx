@@ -19,6 +19,7 @@ import {
 import { PageHeader } from "@/components/PageHeader";
 import { SESSION_TYPES, SOLUTION_TYPES, JUDGMENT_OPTS, AUTO_OPTS } from "@/lib/lists";
 import { fmtDate } from "@/lib/utils";
+import { Sparkles } from "lucide-react";
 
 type SessionModal = { mode: "create" | "edit"; data: DiscoverySession } | null;
 type StepModal = { mode: "create" | "edit"; data: DiscoveryStep } | null;
@@ -119,6 +120,14 @@ function DiscoveryInner() {
         description="Log discovery conversations (summaries) and detailed step-by-step workflow walkthroughs."
         action={
           <div className="flex gap-2">
+            <Link
+              href={`/discovery/import${oppFilter ? `?opp=${oppFilter}` : ""}`}
+              className={!oppIds.length ? "pointer-events-none opacity-50" : ""}
+            >
+              <Button variant="secondary" disabled={!oppIds.length}>
+                <Sparkles className="h-4 w-4" /> Build steps from notes
+              </Button>
+            </Link>
             <Button
               variant="secondary"
               onClick={() => setStepModal({ mode: "create", data: blankStep() })}
